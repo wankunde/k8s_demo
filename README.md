@@ -1,1 +1,1 @@
-# k8s_demo
+# 本项目主要是用于学习Kubernetes
