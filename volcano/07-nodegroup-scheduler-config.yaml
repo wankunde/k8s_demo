@@ -1,0 +1,59 @@
+# 2026-10-14 UAT volcano-scheduler-configmap 的完整配置副本。
+# 相比当前基线只新增 nodegroup 插件；其余 action、plugin 和参数保持不变。
+#
+# strict 必须为 false：UAT 还有没有 Queue affinity 的普通作业。此模式下：
+# - 有 affinity 的 Queue 只能使用匹配的、带 nodegroup 标签的节点；
+# - 无 affinity 的 Queue 只能使用未带 nodegroup 标签的节点。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volcano-scheduler-configmap
+  namespace: volcano-system
+data:
+  volcano-scheduler.conf: |
+    actions: "allocate, preempt"
+    tiers:
+      - plugins:
+          - name: priority
+            enablePreemptable: true
+          # gang plugin 不做是否触发抢占判断
+          - name: gang
+            enablePreemptable: false
+      - plugins:
+          # 标准的预选、优选 plugin, 关闭 volume 相关判断, 当前用不到
+          - name: predicates
+            arguments:
+              predicate.NodeVolumeLimitsEnable: false
+              predicate.VolumeZoneEnable: false
+          - name: proportion
+          # Queue -> NodeGroup 的硬约束和节点打分。
+          - name: nodegroup
+            enablePredicate: true
+            enableNodeOrder: true
+            arguments:
+              strict: false
+          # 混部预选、打分 plugin
+          - name: colocationfilter
+          - name: colocationnodeorder
+            arguments:
+              leastcolocationrequested.weight: 1
+              nodelabelpriority.weight: 1
+          # gpu 调度插件
+          - name: gpushare
+            arguments:
+              gpushare.GPUSharingEnable: true
+              gpushare.GPUNumberEnable: true
+          # 节点亲和权重
+          - name: nodeorder
+            arguments:
+              nodeaffinity.weight: 5
+              podaffinity.weight: 5
+          # binpack 权重
+          - name: binpack
+            arguments:
+              binpack.weight: 3
+              binpack.resources: bcs.com/vcuda-core, bcs.com/vcuda-memory, bcs.com/nvenc, bcs.com/nvdec
+              binpack.resources.bcs.com/vcuda-core: 4
+              binpack.resources.bcs.com/vcuda-memory: 3
+              binpack.resources.bcs.com/nvenc: 2
+              binpack.resources.bcs.com/nvdec: 2

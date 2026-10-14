@@ -1,0 +1,57 @@
+# Queue 是集群级资源，没有 namespace。
+# NodeGroup 名称必须与节点的 volcano.sh/nodegroup-name 标签值完全相同。
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-07-coeus
+  labels:
+    app: volcano-learn
+    lesson: "07"
+    pool: coeus
+spec:
+  parent: root
+  weight: 1
+  reclaimable: true
+  affinity:
+    nodeGroupAffinity:
+      # 硬约束：此 Queue 的作业只能落到 uat-demo-coeus NodeGroup。
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - uat-demo-coeus
+      # 软亲和不参与本课，避免把“优先选择”误认为“资源池隔离”。
+      # preferredDuringSchedulingIgnoredDuringExecution:
+      #   - uat-demo-coeus
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-07-paas
+  labels:
+    app: volcano-learn
+    lesson: "07"
+    pool: paas
+spec:
+  parent: root
+  weight: 1
+  reclaimable: true
+  affinity:
+    nodeGroupAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - uat-demo-paas
+      # preferredDuringSchedulingIgnoredDuringExecution:
+      #   - uat-demo-paas
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-07-unbound
+  labels:
+    app: volcano-learn
+    lesson: "07"
+    case: unbound
+spec:
+  parent: root
+  weight: 1
+  reclaimable: true
+  # 故意不配置 affinity。
+  # nodegroup 插件设置 strict: false 后，此 Queue 只能使用没有
+  # volcano.sh/nodegroup-name 标签的节点，不能进入上面的两个实验 NodeGroup。

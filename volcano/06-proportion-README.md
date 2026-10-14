@@ -149,15 +149,24 @@ SCHEDULER_POD=$("$K" uat get pods -n volcano-system \
 - `06-proportion-scheduler-config.yaml`：继承 05 的完整 UAT 配置，只新增 `proportion` 插件。
 - 本文档：配置前置条件、风险边界、提交顺序和可判定的验收标准。
 
-本次只完成本地 YAML 与文档，不声称共享 UAT 已启用插件或已完成真实比例验证。远端实跑必须先确认 05 已生效、调度影响已经隔离，并由操作者接受共享 scheduler 配置变化。
+本地文件由本课提供；UAT 的 scheduler 配置和实验对象由操作者应用。下面把本地检查与 2026-10-14 的远端实跑证据分开记录。
 
 ## 验证记录
 
-本次已完成四个 06 文件的 YAML 解析，并检查了 Queue 权重 `1:3`、两个 Job 的等量请求、Job -> Queue 引用、`cni: macvlan` 注解，以及 scheduler 内嵌配置。把 06 的 `proportion` 条目移除后，解析后的 scheduler 配置与 05 完全一致，证明 06 没有覆盖 05 的其他调度语义；README 中的 shell 片段也通过 `bash -n`。
+本地已完成四个 06 文件的 YAML 解析，并检查了 Queue 权重 `1:3`、两个 Job 的等量请求、Job -> Queue 引用、`cni: macvlan` 注解，以及 scheduler 内嵌配置。把 06 的 `proportion` 条目移除后，解析后的 scheduler 配置与 05 完全一致，证明 06 没有覆盖 05 的其他调度语义；README 中的 shell 片段也通过 `bash -n`。
 
 同时核对了 Volcano `v1.15.0` 源码：`proportion` 会按 `weight` 计算 `deserved`，并导出本文使用的 `volcano_queue_weight`、`volcano_queue_deserved_milli_cpu` 和 `volcano_queue_deserved_memory_bytes` 指标。
 
-本次没有修改 UAT scheduler ConfigMap，也没有创建 Queue/Job。共享 scheduler 变更会影响集群其他工作负载；并且 `remote-k8s-operations` 技能要求新对象存在性预检查返回 NotFound 后停止，不能用 server-side dry-run 代替实跑。因而真实热加载、Pending Pod 和 `deserved` 的 `1:3` 指标仍是独立实验环境中的待验证项。
+2026-10-14 通过远程包装脚本只读核对了操作者已应用的 UAT 状态：
+
+- 实时 ConfigMap 包含 `- name: proportion`，其余配置保持 05 的内容。
+- scheduler Deployment 为 `1/1 Ready`，参数包含 `--enable-metrics=true`；命名空间没有 scheduler Service，因此使用 Running scheduler Pod 的 `:8080` Pod proxy。
+- 两个 Queue 都是 `Open`，weight 分别为 `1`、`3`，没有 capability，allocated CPU/内存均为 `0`。
+- 两个 Job 都是 `Pending`，各有一个未绑定节点的 Pending Pod，请求均为 `1M` CPU、`1Pi` 内存；Pod 事件为 `FailedScheduling` / `1 Unschedulable`。
+- metrics 返回 CPU deserved `81750`、`245250` milliCPU，内存 deserved `215994860544`、`647984581632` bytes，两组 `team-b / team-a` 都精确等于 `3`；weight 指标也为 `1`、`3`。
+- scheduler 的 `proportion.go` 日志记录了相同 deserved 和 candidate request，证明指标来自已运行的插件，而不是静态 Queue 字段。
+
+本次 proportion 验收通过。另有一个不属于本课比例逻辑的现存问题：scheduler 日志每轮都报告 `Failed to get plugin colocationfilter`、`colocationnodeorder`、`gpushare`，说明当前 scheduler 镜像没有加载这三个配置中的插件。它们没有阻断 proportion 的 `1:3` 计算，但应单独核对镜像的插件注册能力。
 
 参考：
 

@@ -6,7 +6,9 @@
 
 06：学习 Queue 权重份额，见 [Proportion demo](06-proportion-README.md)。示例在 05 配置上启用 `proportion`，用相同的超额需求和 scheduler metrics 验证 `weight: 1:3` 对应的 `deserved` 比例。
 
-环境：`jswj-ai-infra-k8s`，命名空间 `infra-demo-prod`。这里的 `wj` 是远程 kubectl 包装脚本中的集群别名。本集群的 CNI 要求 Pod 标注 `cni: macvlan`。以下例子按顺序运行，每个容器会自行结束。
+07：学习 Queue 与机器资源池绑定，见 [NodeGroup demo](07-nodegroup-README.md)。示例启用 `nodegroup`，从 UAT 的 coeus、paas 机器池各取一个节点形成隔离切片；验证两个绑定 Queue 只能进入对应 NodeGroup，同时验证未指定 NodeGroup 的 Queue 只能使用未标记节点。
+
+环境：UAT `jscs-ai-works-beta`，命名空间 `infra-demo-prod`。这里的 `uat` 是远程 kubectl 包装脚本中的集群别名。本集群的 CNI 要求 Pod 标注 `cni: macvlan`。以下例子按顺序运行，每个容器会自行结束。
 
 ```bash
 K=/Users/wankun/.codex/skills/remote-k8s-operations/scripts/remote-kubectl.sh
