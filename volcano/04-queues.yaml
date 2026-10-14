@@ -1,0 +1,35 @@
+# Queue 是集群级资源，没有 namespace；先创建 Queue，再提交引用它的 Job。
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-04-team-a
+  labels:
+    app: volcano-learn
+    lesson: "04"
+spec:
+  # 同一父队列下的两个学习队列，便于比较。
+  parent: root
+  # 配合 proportion 插件和资源争用才有权重分配效果。
+  # UAT 当前没有启用 proportion，所以本次不验证资源分配比例。
+  weight: 1
+  # 允许其他队列通过 reclaim 回收借用的资源；它不是删除 Pod 的开关。
+  # UAT 当前 actions 只有 allocate，此处不验证资源回收。
+  reclaimable: true
+  # 进阶实验暂不启用：配合相应队列资源管理插件限制队列资源总量。
+  # 不要在当前 UAT 中把该字段当作已经验证的资源限额。
+  # capability:
+  #   cpu: "1"
+  #   memory: 1Gi
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-04-team-b
+  labels:
+    app: volcano-learn
+    lesson: "04"
+spec:
+  parent: root
+  # 与 team-a 的 1 对比；不表示 B 总会先运行，也不是固定分配三个节点。
+  weight: 3
+  reclaimable: true

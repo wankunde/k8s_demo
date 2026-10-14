@@ -1,0 +1,38 @@
+# 06 只用于启用了 proportion 插件的隔离实验集群。
+# Queue 是集群级资源，没有 namespace。
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-06-team-a
+  labels:
+    app: volcano-learn
+    lesson: "06"
+    team: a
+spec:
+  parent: root
+  # team-a 与 team-b 的权重为 1:3；两边都有足够需求时，
+  # proportion 计算出的 deserved resource 也应接近 1:3。
+  weight: 1
+  reclaimable: true
+  # 本课故意不启用 capability。否则观察到的上限可能来自 capability，
+  # 不能单独证明是 weight + proportion 的结果。
+  # capability:
+  #   cpu: "4"
+  #   memory: 8Gi
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-06-team-b
+  labels:
+    app: volcano-learn
+    lesson: "06"
+    team: b
+spec:
+  parent: root
+  weight: 3
+  reclaimable: true
+  # capability 与 team-a 一样保持关闭，避免它干扰权重实验。
+  # capability:
+  #   cpu: "12"
+  #   memory: 24Gi

@@ -1,0 +1,48 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: volcano-learn-05-high
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "05"
+    role: preemptor
+spec:
+  schedulerName: volcano
+  # preempt action 只处理同一 Queue 内的 Job，本例与 victim 使用同一专用 Queue。
+  queue: volcano-learn-05-preempt
+  priorityClassName: volcano-learn-05-high
+  minAvailable: 1
+  ttlSecondsAfterFinished: 300
+  tasks:
+    - name: worker
+      replicas: 1
+      minAvailable: 1
+      template:
+        metadata:
+          labels:
+            app: volcano-learn
+            lesson: "05"
+            role: preemptor
+          annotations:
+            cni: macvlan
+        spec:
+          priorityClassName: volcano-learn-05-high
+          nodeSelector:
+            volcano-preempt-demo: "ready"
+          restartPolicy: Never
+          containers:
+            - name: preemptor
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -c
+                - echo "high-priority preemptor started"; sleep 120; echo "high-priority preemptor finished"
+              resources:
+                requests:
+                  cpu: "20"
+                  memory: 64Mi
+                limits:
+                  cpu: "20"
+                  memory: 128Mi

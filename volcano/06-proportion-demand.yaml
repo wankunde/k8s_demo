@@ -1,0 +1,85 @@
+# 06 只用于启用了 proportion 插件的隔离实验集群。
+# 两个 Job 的需求完全相同，并且故意远超普通集群容量；Pod 预期保持 Pending，
+# 用于让 proportion 暴露稳定的 deserved 指标，不会真正消耗 CPU/内存。
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: volcano-learn-06-team-a-demand
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "06"
+    team: a
+spec:
+  schedulerName: volcano
+  queue: volcano-learn-06-team-a
+  minAvailable: 1
+  tasks:
+    - name: demand
+      replicas: 1
+      minAvailable: 1
+      template:
+        metadata:
+          labels:
+            app: volcano-learn
+            lesson: "06"
+            team: a
+          annotations:
+            cni: macvlan
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: demand
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              # 该命令正常情况下不会执行，因为请求量故意超过任一节点容量。
+              command: ["sh", "-c", "echo 'unexpected: lesson-06 team-a started'; sleep 300"]
+              resources:
+                requests:
+                  cpu: "1000000"
+                  memory: 1Pi
+                # limits 故意关闭；开启后必须不小于 requests，且不会改善本实验。
+                # limits:
+                #   cpu: "1000000"
+                #   memory: 1Pi
+---
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: volcano-learn-06-team-b-demand
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "06"
+    team: b
+spec:
+  schedulerName: volcano
+  queue: volcano-learn-06-team-b
+  minAvailable: 1
+  tasks:
+    - name: demand
+      replicas: 1
+      minAvailable: 1
+      template:
+        metadata:
+          labels:
+            app: volcano-learn
+            lesson: "06"
+            team: b
+          annotations:
+            cni: macvlan
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: demand
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              command: ["sh", "-c", "echo 'unexpected: lesson-06 team-b started'; sleep 300"]
+              resources:
+                requests:
+                  cpu: "1000000"
+                  memory: 1Pi
+                # limits 故意关闭，原因同 team-a。
+                # limits:
+                #   cpu: "1000000"
+                #   memory: 1Pi

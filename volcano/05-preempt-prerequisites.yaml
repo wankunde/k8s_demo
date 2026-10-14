@@ -1,0 +1,36 @@
+# Queue 和 PriorityClass 都是集群级资源，没有 namespace。
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-05-preempt
+  labels:
+    app: volcano-learn
+    lesson: "05"
+spec:
+  parent: root
+  weight: 1
+  reclaimable: true
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: volcano-learn-05-low
+  labels:
+    app: volcano-learn
+    lesson: "05"
+value: -100
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Low priority victim used by Volcano preemption lesson 05"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: volcano-learn-05-high
+  labels:
+    app: volcano-learn
+    lesson: "05"
+value: 100
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "High priority preemptor used by Volcano preemption lesson 05"

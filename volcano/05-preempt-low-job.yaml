@@ -1,0 +1,59 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: volcano-learn-05-low
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "05"
+    role: victim
+spec:
+  schedulerName: volcano
+  queue: volcano-learn-05-preempt
+  # Job 优先级用于 Volcano 的 JobOrderFn 和跨 Job 抢占判断。
+  priorityClassName: volcano-learn-05-low
+  minAvailable: 1
+  maxRetry: 10
+  ttlSecondsAfterFinished: 300
+  policies:
+    # victim Pod 被驱逐后重启 Job；高优先级 Job 完成后它可以再次运行。
+    - event: PodEvicted
+      action: RestartJob
+  tasks:
+    - name: worker
+      replicas: 1
+      minAvailable: 1
+      template:
+        metadata:
+          labels:
+            app: volcano-learn
+            lesson: "05"
+            role: victim
+          annotations:
+            cni: macvlan
+            # Pod 默认可抢占；这里显式声明，方便观察和教学。
+            volcano.sh/preemptable: "true"
+        spec:
+          # 显式写到 Pod 模板，确保最终 Pod 有 priority/value 字段。
+          priorityClassName: volcano-learn-05-low
+          nodeSelector:
+            volcano-preempt-demo: "ready"
+          restartPolicy: Never
+          terminationGracePeriodSeconds: 5
+          containers:
+            - name: victim
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -c
+                - echo "low-priority victim started"; sleep 600
+              resources:
+                # 目标节点需要至少 20 CPU 可分配。低、高 Job 各请求 20 CPU，
+                # 在 28 CPU 的单节点上可以各自运行，但不能同时运行。
+                requests:
+                  cpu: "20"
+                  memory: 64Mi
+                limits:
+                  cpu: "20"
+                  memory: 128Mi

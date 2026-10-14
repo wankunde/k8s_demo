@@ -1,0 +1,36 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: volcano-learn-03-priority-busybox
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "03"
+spec:
+  schedulerName: volcano
+  queue: default
+  priorityClassName: coeus-job-low
+  minAvailable: 1
+  ttlSecondsAfterFinished: 60
+  tasks:
+    - name: worker
+      replicas: 1
+      template:
+        metadata:
+          annotations:
+            cni: macvlan
+        spec:
+          priorityClassName: coeus-job-low
+          restartPolicy: Never
+          containers:
+            - name: task
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              command: ["sh", "-c", "echo lesson-03-priority-and-queue"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi

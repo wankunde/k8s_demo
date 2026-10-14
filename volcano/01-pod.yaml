@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: volcano-learn-01-busybox
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "01"
+  annotations:
+    cni: macvlan
+spec:
+  schedulerName: volcano
+  restartPolicy: Never
+  containers:
+    - name: task
+      image: hub.bilibili.co/compile/library/busybox:1.36.1
+      imagePullPolicy: IfNotPresent
+      command: ["sh", "-c", "echo lesson-01-scheduled-by-volcano; sleep 5"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi

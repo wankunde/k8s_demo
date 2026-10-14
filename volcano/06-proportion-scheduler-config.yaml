@@ -1,0 +1,54 @@
+# UAT 当前 volcano-scheduler-configmap 的完整配置副本，仅做两处抢占相关修改：
+# 1. actions 从 "allocate" 改为 "allocate, preempt"；
+# 2. priority 显式设置 enablePreemptable: true。
+#
+# gang.enablePreemptable 保持 false。若改为 true，Gang 插件会保护已经处于
+# minAvailable 下限的 victim Job；本例 victim 只有 1 个 Pod 且 minAvailable=1，
+# 它会与 priority 插件取交集，从而阻止这个 Pod 被抢占。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volcano-scheduler-configmap
+  namespace: volcano-system
+data:
+  volcano-scheduler.conf: |
+    actions: "allocate, preempt"
+    tiers:
+      - plugins:
+          - name: priority
+            enablePreemptable: true
+          # gang plugin 不做是否触发抢占判断
+          - name: gang
+            enablePreemptable: false
+      - plugins:
+          # 标准的预选、优选 plugin, 关闭 volume 相关判断, 当前用不到
+          - name: predicates
+            arguments:
+              predicate.NodeVolumeLimitsEnable: false
+              predicate.VolumeZoneEnable: false
+          - name: proportion
+          # 混部预选、打分 plugin
+          - name: colocationfilter
+          - name: colocationnodeorder
+            arguments:
+              leastcolocationrequested.weight: 1
+              nodelabelpriority.weight: 1
+          # gpu 调度插件
+          - name: gpushare
+            arguments:
+              gpushare.GPUSharingEnable: true
+              gpushare.GPUNumberEnable: true
+          # 节点亲和权重
+          - name: nodeorder
+            arguments:
+              nodeaffinity.weight: 5
+              podaffinity.weight: 5
+          # binpack 权重
+          - name: binpack
+            arguments:
+              binpack.weight: 3
+              binpack.resources: bcs.com/vcuda-core, bcs.com/vcuda-memory, bcs.com/nvenc, bcs.com/nvdec
+              binpack.resources.bcs.com/vcuda-core: 4
+              binpack.resources.bcs.com/vcuda-memory: 3
+              binpack.resources.bcs.com/nvenc: 2
+              binpack.resources.bcs.com/nvdec: 2

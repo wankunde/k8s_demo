@@ -1,0 +1,41 @@
+apiVersion: batch.volcano.sh/v1alpha1
+# 1. 这里定义一个 Job 对象，使用 Volcano 的 Gang Scheduling 特性
+kind: Job
+metadata:
+  name: volcano-learn-02-gang-busybox
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "02"
+spec:
+  schedulerName: volcano
+  queue: default
+  # 2.1 定义了整个作业能够启动运行所需的最少 Pod 总数
+  minAvailable: 2
+  # 3. 作业完成 60s 后删除
+  ttlSecondsAfterFinished: 60
+  tasks:
+    - name: worker
+      replicas: 2
+      # 2.2 定义了该特定任务（例如这里的 worker）需要达到的最小可用副本数
+      minAvailable: 2
+      template:
+        metadata:
+          annotations:
+            cni: macvlan
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            volcano-observe-02: "ready"
+          containers:
+            - name: task
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              command: ["sh", "-c", "echo lesson-02-gang-member; sleep 10"]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                limits:
+                  cpu: 100m
+                  memory: 64Mi

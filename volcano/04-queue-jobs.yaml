@@ -1,0 +1,85 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: volcano-learn-04-team-a-job
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "04"
+    team: a
+spec:
+  schedulerName: volcano
+  # Job -> Queue 的关联字段。
+  queue: volcano-learn-04-team-a
+  minAvailable: 1
+  # 整个 Job 结束后保留 5 分钟，再由控制器清理 Job 及其 Pod。
+  # Queue 没有这个 TTL，Job 结束后 Queue 会保留，便于继续学习。
+  ttlSecondsAfterFinished: 300
+  tasks:
+    - name: worker
+      replicas: 1
+      minAvailable: 1
+      template:
+        metadata:
+          labels:
+            app: volcano-learn
+            lesson: "04"
+            team: a
+          annotations:
+            cni: macvlan
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: task
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              # sleep 延长已经调度后的运行时间，方便在 k9s 中观察。
+              command: ["sh", "-c", "echo 'lesson-04 team-a started'; sleep 120; echo 'lesson-04 team-a finished'"]
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
+---
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  name: volcano-learn-04-team-b-job
+  namespace: infra-demo-prod
+  labels:
+    app: volcano-learn
+    lesson: "04"
+    team: b
+spec:
+  schedulerName: volcano
+  queue: volcano-learn-04-team-b
+  minAvailable: 1
+  ttlSecondsAfterFinished: 300
+  tasks:
+    - name: worker
+      replicas: 1
+      minAvailable: 1
+      template:
+        metadata:
+          labels:
+            app: volcano-learn
+            lesson: "04"
+            team: b
+          annotations:
+            cni: macvlan
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: task
+              image: hub.bilibili.co/compile/library/busybox:1.36.1
+              imagePullPolicy: IfNotPresent
+              command: ["sh", "-c", "echo 'lesson-04 team-b started'; sleep 120; echo 'lesson-04 team-b finished'"]
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 32Mi
+                limits:
+                  cpu: 200m
+                  memory: 64Mi
