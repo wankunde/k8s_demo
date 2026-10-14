@@ -1,0 +1,60 @@
+# 08 binpack：基于 07/UAT 配置的完整实验 ConfigMap，影响所有 Volcano Job。
+# 两份 08 配置之间只有 binpack.weight 不同（0 -> 3）。
+# 应用前备份实时正文并比对；实验完成后恢复备份，不要长期留在共享集群。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: volcano-scheduler-configmap
+  namespace: volcano-system
+data:
+  volcano-scheduler.conf: |
+    actions: "allocate, preempt"
+    tiers:
+      - plugins:
+          - name: priority
+            enablePreemptable: true
+          # gang plugin 不做是否触发抢占判断
+          - name: gang
+            enablePreemptable: false
+      - plugins:
+          # 标准的预选、优选 plugin, 关闭 volume 相关判断, 当前用不到
+          - name: predicates
+            arguments:
+              predicate.NodeVolumeLimitsEnable: false
+              predicate.VolumeZoneEnable: false
+          - name: proportion
+          # Queue -> NodeGroup 的硬约束和节点打分。
+          - name: nodegroup
+            enablePredicate: true
+            enableNodeOrder: false  # 只保留 NodeGroup 硬约束，排除评分干扰。
+            arguments:
+              strict: false
+          # 混部预选、打分 plugin
+          - name: colocationfilter
+          - name: colocationnodeorder
+            enableNodeOrder: false  # 本课排除混部打分；不改变 colocationfilter。
+            arguments:
+              leastcolocationrequested.weight: 1
+              nodelabelpriority.weight: 1
+          # gpu 调度插件
+          - name: gpushare
+            arguments:
+              gpushare.GPUSharingEnable: true
+              gpushare.GPUNumberEnable: true
+          # 只保留 LeastRequested；其余默认打分显式关闭，便于对照归因。
+          - name: nodeorder
+            arguments:
+              leastrequested.weight: 1
+              mostrequested.weight: 0  # 关闭另一个装箱评分，避免与 binpack 混淆。
+              balancedresource.weight: 0
+              nodeaffinity.weight: 0   # 硬亲和仍由 predicates 检查。
+              podaffinity.weight: 0
+              tainttoleration.weight: 0
+              imagelocality.weight: 0
+              podtopologyspread.weight: 0
+          - name: binpack
+            arguments:
+              binpack.weight: 3
+              binpack.cpu: 1
+              binpack.memory: 1
+              binpack.resources: ""  # CPU/内存实验，不参与 GPU 扩展资源评分。

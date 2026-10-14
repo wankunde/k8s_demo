@@ -8,6 +8,8 @@
 
 07：学习 Queue 与机器资源池绑定，见 [NodeGroup demo](07-nodegroup-README.md)。示例启用 `nodegroup`，从 UAT 的 coeus、paas 机器池各取一个节点形成隔离切片；验证两个绑定 Queue 只能进入对应 NodeGroup，同时验证未指定 NodeGroup 的 Queue 只能使用未标记节点。
 
+08：学习节点装箱，见 [Binpack demo](08-binpack-README.md)。用固定节点的背景 Job 制造资源申请差异，再对相同的 6 个 worker 比较 `binpack.weight: 0/3`：关闭时优先选择较空节点，开启时优先选择较满节点。包含两份对照配置、专用 Queue、三个 Job、证据采集与恢复步骤。
+
 环境：UAT `jscs-ai-works-beta`，命名空间 `infra-demo-prod`。这里的 `uat` 是远程 kubectl 包装脚本中的集群别名。本集群的 CNI 要求 Pod 标注 `cni: macvlan`。以下例子按顺序运行，每个容器会自行结束。
 
 ```bash

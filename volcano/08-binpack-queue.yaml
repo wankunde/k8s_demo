@@ -1,0 +1,12 @@
+# Queue 不绑定 NodeGroup；两个候选节点必须没有 volcano.sh/nodegroup-name 标签。
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: volcano-learn-08-binpack
+  labels:
+    app: volcano-learn
+    lesson: "08"
+spec:
+  parent: root
+  weight: 1
+  reclaimable: true
